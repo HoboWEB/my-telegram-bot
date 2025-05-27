@@ -23,7 +23,7 @@ phone = os.getenv('PHONE')               # Ваш номер: "+79292020876"
 contact = int(os.getenv('CONTACT'))      # ID чата (цифры, а не @username)
 
 # 3. Уникальное имя сессии для Render
-session_name = 'render_session'  # Это создаст файл render_session.session
+session_name = 'render_session_NEW'  # Это создаст файл render_session.session
 
 # 4. Списки ответов (можно менять)
 general_replies = [
