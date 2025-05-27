@@ -6,27 +6,26 @@ from flask import Flask
 from threading import Thread
 import os
 
-# --- 1. Настройка Flask для Render ---
+# 1. Настройка Flask (чтобы бот не "засыпал" на Render)
 app = Flask(__name__)
 
 @app.route('/')
 def home():
-    return "Автоответчик активен! Проверьте Telegram."
+    return "Бот активен! Проверьте Telegram."
 
 def run_flask():
-    app.run(host='0.0.0.0', port=10000)  # Обязательные параметры для Render
+    app.run(host='0.0.0.0', port=10000)  # Render требует порт 10000
 
-# --- 2. Основной код бота ---
-# Переносим конфигурацию в переменные окружения (безопасность!)
-api_id = int(os.getenv('API_ID', 23495117))  # Значение по умолчанию можно удалить
-api_hash = os.getenv('API_HASH', '97ec922bd7967ef76546b81a02bfd059')
-phone = os.getenv('PHONE', '+79292020876')
-contact = int(os.getenv('CONTACT', 1887931609))
+# 2. Настройки бота (берутся из переменных окружения Render)
+api_id = int(os.getenv('API_ID'))        # Ваш API ID из my.telegram.org
+api_hash = os.getenv('API_HASH')         # Ваш API HASH
+phone = os.getenv('PHONE')               # Ваш номер: "+79292020876"
+contact = int(os.getenv('CONTACT'))      # ID чата (цифры, а не @username)
 
-# Счётчик сообщений от контакта
-message_counter = 0
+# 3. Уникальное имя сессии для Render
+session_name = 'render_session'  # Это создаст файл render_session.session
 
-# Списки ответов
+# 4. Списки ответов (можно менять)
 general_replies = [
     "Да, точняк!",
     "Ну и ну...",
@@ -43,35 +42,43 @@ question_replies = [
     "Надо время обдумать."
 ]
 
+# 5. Основная функция бота
 async def run_bot():
     global message_counter
-    client = TelegramClient('session_name', api_id, api_hash)
+    message_counter = 0  # Счётчик сообщений
     
+    client = TelegramClient(session_name, api_id, api_hash)
+    
+    # Обработчик новых сообщений
     @client.on(NewMessage(from_users=contact))
     async def reply(event):
         global message_counter
         message_counter += 1
         
+        # Ответ каждое 2-е сообщение
         if message_counter % 2 == 0:
-            if "?" in event.text:
+            if "?" in event.text:  # Если вопрос
                 response = random.choice(question_replies)
             else:
                 response = random.choice(general_replies)
             
+            # Задержка для "естественности" (5-30 сек)
             await asyncio.sleep(random.randint(5, 30))
             await event.reply(response)
             print(f"[Ответил] {response}")
 
+    # Запуск клиента
+    print("Подключаемся к Telegram...")
     await client.start(phone)
-    print("Автоответчик активен.")
+    print("Автоответчик активен!")
     await client.run_until_disconnected()
 
-# --- 3. Запуск в параллельных потоках ---
+# 6. Запуск Flask и бота в параллельных потоках
 if __name__ == '__main__':
     # Запускаем Flask в отдельном потоке
     flask_thread = Thread(target=run_flask)
-    flask_thread.daemon = True
+    flask_thread.daemon = True  # Поток завершится при закрытии программы
     flask_thread.start()
 
-    # Запускаем бота в основном потоке
+    # Запускаем бота
     asyncio.run(run_bot())
