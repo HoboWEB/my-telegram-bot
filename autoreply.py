@@ -21,7 +21,7 @@ def run_flask():
 api_id = int(os.getenv('API_ID', 23495117))  # Значение по умолчанию можно удалить
 api_hash = os.getenv('API_HASH', '97ec922bd7967ef76546b81a02bfd059')
 phone = os.getenv('PHONE', '+79292020876')
-contact = int(os.getenv('CONTACT', 844629954))
+contact = int(os.getenv('CONTACT', 1887931609))
 
 # Счётчик сообщений от контакта
 message_counter = 0
