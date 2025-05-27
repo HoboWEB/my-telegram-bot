@@ -2,12 +2,26 @@ from telethon.sync import TelegramClient
 from telethon.events import NewMessage
 import random
 import asyncio
+from flask import Flask
+from threading import Thread
+import os
 
-# Ваши данные (замените!)
-api_id = 23495117                   # Ваш API ID
-api_hash = '97ec922bd7967ef76546b81a02bfd059' # Ваш API HASH
-phone = '+79292020876'              # Ваш номер
-contact = 844629954     # Или ID (через @userinfobot)
+# --- 1. Настройка Flask для Render ---
+app = Flask(__name__)
+
+@app.route('/')
+def home():
+    return "Автоответчик активен! Проверьте Telegram."
+
+def run_flask():
+    app.run(host='0.0.0.0', port=10000)  # Обязательные параметры для Render
+
+# --- 2. Основной код бота ---
+# Переносим конфигурацию в переменные окружения (безопасность!)
+api_id = int(os.getenv('API_ID', 23495117))  # Значение по умолчанию можно удалить
+api_hash = os.getenv('API_HASH', '97ec922bd7967ef76546b81a02bfd059')
+phone = os.getenv('PHONE', '+79292020876')
+contact = int(os.getenv('CONTACT', 844629954))
 
 # Счётчик сообщений от контакта
 message_counter = 0
@@ -29,32 +43,35 @@ question_replies = [
     "Надо время обдумать."
 ]
 
-async def main():
+async def run_bot():
     global message_counter
     client = TelegramClient('session_name', api_id, api_hash)
     
-    # Обработчик новых сообщений
     @client.on(NewMessage(from_users=contact))
     async def reply(event):
         global message_counter
         message_counter += 1
         
-        # Ответ каждое 2-е сообщение
         if message_counter % 2 == 0:
-            if "?" in event.text:  # Если вопрос
+            if "?" in event.text:
                 response = random.choice(question_replies)
             else:
                 response = random.choice(general_replies)
             
-            # Задержка для "естественности" (5-30 сек)
             await asyncio.sleep(random.randint(5, 30))
             await event.reply(response)
             print(f"[Ответил] {response}")
 
-    # Запуск клиента
     await client.start(phone)
-    print("Автоответчик активен. Нажмите Ctrl+C для остановки.")
+    print("Автоответчик активен.")
     await client.run_until_disconnected()
 
+# --- 3. Запуск в параллельных потоках ---
 if __name__ == '__main__':
-    asyncio.run(main())
+    # Запускаем Flask в отдельном потоке
+    flask_thread = Thread(target=run_flask)
+    flask_thread.daemon = True
+    flask_thread.start()
+
+    # Запускаем бота в основном потоке
+    asyncio.run(run_bot())
